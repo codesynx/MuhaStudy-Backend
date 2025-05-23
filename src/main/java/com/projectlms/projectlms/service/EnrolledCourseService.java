@@ -135,15 +135,29 @@ public class EnrolledCourseService {
 
     public List<EnrolledCourse> getEnrolledCourseByUser(String email) {
         try {
-            log.info("Find user: {}", email);
+            log.info("Find user by email: {}", email);
             User user = userRepository.findUsername(email);
+
+            if (user == null) {
+                log.warn("User not found for email: {}. Returning empty list for enrolled courses.", email);
+                return new java.util.ArrayList<>(); // Return an empty list if user not found
+            }
+
+            log.info("Fetching enrolled courses for user ID: {}", user.getId());
             List<EnrolledCourse> enrolledCourses = enrolledCourseRepository.getEnrolledCourseByUser(user.getId());
 
-            if (enrolledCourses.isEmpty()) throw new Exception("enrolled courses empty");
+            // No longer throw an exception if the list is empty.
+            // An empty list is a valid state for a user with no enrolled courses.
+            if (enrolledCourses.isEmpty()) {
+                log.info("No enrolled courses found for user ID: {}. Returning empty list.", user.getId());
+            }
+            
             return enrolledCourses;
         } catch (Exception e) {
-            log.error("Get enrolled course by user error");
-            throw new RuntimeException(e.getMessage(), e);
+            // Log the original exception's message and type for better debugging
+            log.error("Error fetching enrolled courses for user {}: {} - {}", email, e.getClass().getName(), e.getMessage());
+            // Rethrow as a runtime exception, possibly wrapping the original cause
+            throw new RuntimeException("Failed to retrieve enrolled courses for user " + email, e);
         }
     }
 
